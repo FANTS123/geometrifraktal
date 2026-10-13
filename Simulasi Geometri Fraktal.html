@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sierpinski Carpet Generator (Flipped & Enlarged)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .controls {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 5px;
+        }
+        input[type=range] {
+            cursor: pointer;
+        }
+        canvas {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌀 Sierpinski Carpet Generator</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="iterations">Iterasi: <span id="iter-val">3</span></label>
+            <input type="range" id="iterations" min="0" max="5" value="3">
+        </div>
+        <div class="control-group">
+            <label for="scale">Skala (Multiplier): <span id="scale-val">0.33</span></label>
+            <input type="range" id="scale" min="0.1" max="1.0" step="0.01" value="0.33">
+        </div>
+    </div>
+
+    <canvas id="carpetCanvas" width="800" height="800"></canvas>
+
+    <script>
+        const canvas = document.getElementById('carpetCanvas');
+        const ctx = canvas.getContext('2d');
+        const iterInput = document.getElementById('iterations');
+        const iterVal = document.getElementById('iter-val');
+        const scaleInput = document.getElementById('scale');
+        const scaleVal = document.getElementById('scale-val');
+
+        function drawSquare(x, y, size) {
+            ctx.fillRect(x, y, size, size);
+        }
+
+        function updateCanvas() {
+            const maxIter = parseInt(iterInput.value);
+            const scaleFactor = parseFloat(scaleInput.value);
+
+            iterVal.textContent = maxIter;
+            scaleVal.textContent = scaleFactor.toFixed(2);
+
+            const W = canvas.width;
+            const H = canvas.height;
+
+            // Bersihkan latar belakang
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#2c3e50';
+
+            // Inisialisasi persegi utama di tengah layar (1/3 sampai 2/3 dimensi)
+            const initStart = W / 3;
+            const initSize = W / 3;
+            drawSquare(initStart, initStart, initSize);
+
+            // Hitung translasi sesuai dengan koordinat baris kolom dari kode Python Anda
+            const offset0 = (W * 1/3) - (W * 1/3 * scaleFactor);
+            const offset1 = (W * 4/9) - (W * 1/3 * scaleFactor);
+            const offset2 = (W * 5/9) - (W * 1/3 * scaleFactor);
+
+            const translations = [
+                [offset0, offset0], [offset0, offset1], [offset0, offset2],
+                [offset1, offset0],                     [offset1, offset2],
+                [offset2, offset0], [offset2, offset1], [offset2, offset2]
+            ];
+
+            // Lakukan simulasi iterasi perulangan
+            for (let iter = 0; iter < maxIter; iter++) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = W;
+                tempCanvas.height = H;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.fillStyle = '#2c3e50';
+
+                // Terapkan transformasi skala dan translasi ke semua bagian aktif
+                for (let t = 0; t < 8; t++) {
+                    tempCtx.save();
+                    const tx = translations[t][0];
+                    const ty = translations[t][1];
+                    tempCtx.translate(tx, ty);
+                    tempCtx.scale(scaleFactor, scaleFactor);
+                    tempCtx.drawImage(canvas, 0, 0);
+                    tempCtx.restore();
+                }
+
+                // Bersihkan canvas utama dan gambar hasil transformasi
+                ctx.clearRect(0, 0, W, H);
+                ctx.drawImage(tempCanvas, 0, 0);
+
+                // Mengosongkan area tengah persis di akhir iterasi
+                const subSquareLen = initSize / 3;
+                const clearStart = initStart + subSquareLen;
+                ctx.clearRect(clearStart, clearStart, subSquareLen, subSquareLen);
+            }
+
+            // Melakukan flip vertikal pada canvas utama untuk visualisasi akhir
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = W;
+            finalCanvas.height = H;
+            const finalCtx = finalCanvas.getContext('2d');
+            
+            // Salin gambar yang ada, lalu gambar dengan transformasi terbalik secara vertikal
+            finalCtx.translate(0, H);
+            finalCtx.scale(1, -1);
+            finalCtx.drawImage(canvas, 0, 0);
+
+            ctx.clearRect(0, 0, W, H);
+            ctx.drawImage(finalCanvas, 0, 0);
+        }
+
+        iterInput.addEventListener('input', updateCanvas);
+        scaleInput.addEventListener('input', updateCanvas);
+
+        // Gambar render pertama kali
+        updateCanvas();
+    </script>
+</body>
+</html>
